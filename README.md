@@ -46,3 +46,19 @@ In our case, we need to do a purely syntactic rewriting, so the first line is go
 Despite being one-liners, both scalameta and scalahost actually refer to a bunch of submodules, which means that if necessary you can be really fine-grained about the functionality that you want to include. In our case, it'd be enough to reference `libraryDependencies += "org.scalameta" %% "quasiquotes" % "..."`, but we'll proceed with `"scalameta"` for simplicity.
 
 ![Scala.meta modules](https://rawgit.com/scalameta/scalameta/master/docs/modules.svg)
+
+### Setting up imports
+
+Since scala.meta APIs aren't living in a cake (looking at you, `scala.tools.nsc` and `scala.reflect`), setting up the environment is fairly simple and typically takes just one line of code.
+
+As we've referenced `"scalameta"`, it's enough to just `import scala.meta._` to bring all the functionality into the current scope. When referencing individual modules, the umbrella import is not available, and one has to import individual pieces of functionality separately (e.g. `import scala.meta.parsers._` or `import scala.meta.quasiquotes._`).
+
+```scala
+import scala.meta._
+
+object Test {
+  def main(args: Array[String]): Unit = {
+    ???
+  }
+}
+```
