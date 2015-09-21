@@ -1,4 +1,5 @@
 import scala.meta._
+import scala.meta.tql._
 
 object Test {
   def main(args: Array[String]): Unit = {
@@ -6,8 +7,7 @@ object Test {
     val tree = stream.parse[Source]
     val tree1 = tree.transform {
       case q"..$mods def $name[..$tparams](...$paramss): $tpeopt = $expr" =>
-        var evidences: List[Term.Param] = Nil
-        val tparams1 = tparams.map {
+        val (tparams1, evidences) = tparams.transform {
           case tparam"..$mods $name[..$tparams] >: $lo <: $hi <% ..$vbs : ..$cbs" =>
             val paramEvidences = vbs.map(vb => {
               val evidenceName = Term.fresh("ev")
@@ -21,8 +21,8 @@ object Test {
               }
               param"implicit $evidenceName: $evidenceTpe"
             })
-            evidences ++= paramEvidences
-            tparam"..$mods $name[..$tparams] >: $lo <: $hi : ..$cbs"
+            val tparam1 = tparam"..$mods $name[..$tparams] >: $lo <: $hi : ..$cbs"
+            tparam1 withResult paramEvidences
         }
         val paramss1 = {
           if (evidences.isEmpty) paramss
