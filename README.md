@@ -146,3 +146,48 @@ trait (168..173),   (173..174), LowPriorityOrderingImplicits (174..202), ...))
 ```
 
 It is usually unnecessary to work at the level of tokens, because scala.meta trees are designed to express the overwhelming majority of language features in their structure. For instance, view bounds are stored in a dedicated field in a class that represents type parameters, so they can be read and written in an easy and reliable fashion.
+
+### Rewriting the parsed tree
+
+In order to apply changes to the parsed tree, we can use the `Tree.transform` method of the collection-like UI of abstract syntax trees. In comparison with the traditional visitor approach, it features functional interface and requires minimal boilerplate. Note how we avoid the usual `object needToThinkOfSmartName extends Transformer { override def transform(tree: Tree): Tree = ... }` business.
+
+```scala
+import scala.meta._
+
+object Test {
+  def main(args: Array[String]): Unit = {
+    val stream = getClass.getResourceAsStream("Ordering.scala")
+    val tree = stream.parse[Source]
+    val tree1 = tree.transform {
+      case q"..$mods def $name[..$tparams](...$paramss): $tpeopt = $expr" =>
+        var evidences: List[Term.Param] = Nil
+        val tparams1 = tparams.map {
+          case tparam"..$mods $name[..$tparams] >: $lo <: $hi <% ..$vbs : ..$cbs" =>
+            val paramEvidences = vbs.map(vb => {
+              val evidenceName = Term.fresh("ev")
+              val evidenceTpe = t"$name => $vb"
+              param"implicit $evidenceName: $evidenceTpe"
+            })
+            evidences ++= paramEvidences
+            tparam"..$mods $name[..$tparams] >: $lo <: $hi : ..$cbs"
+        }
+        val paramss1 = {
+          if (evidences.isEmpty) paramss
+          else {
+            def isImplicit(p: Term.Param) = {
+              val param"..$mods $_: $_ = $_" = p
+              mods.collect{ case mod"implicit" => }.nonEmpty
+            }
+            val shouldMerge = paramss.nonEmpty && paramss.last.exists(isImplicit)
+            if (shouldMerge) paramss.init :+ (paramss.last ++ evidences)
+            else paramss :+ evidences
+          }
+        }
+        q"..$mods def $name[..$tparams1](...$paramss1): $tpeopt = $expr"
+    }
+    println(tree1)
+  }
+}
+```
+
+Note how scala.meta allows to capture all the language features of Scala, even those like view bounds that are traditionally desugared in scala.reflect. Even though quasiquotes in scala.reflect try really hard to abstract away the desugarings, sometimes the abstraction leaks, and the user is left to deal with the compiler internals. This never happens in scala.meta.
