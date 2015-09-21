@@ -302,3 +302,9 @@ Firstly, `q"..$mods def $name[..$tparams](...$paramss): $tpeopt = $expr"` is sti
 Secondly, the comment is going to be irreversibly gone. Technically speaking, the comment belongs to the collection of tokens associated with the type parameter. Since the type parameter is getting rewritten, its tokens are going to be regenerated with a pretty dumb prettyprinter (see [#164](https://github.com/scalameta/scalameta/issues/164) for more information), and it really can't guess where we want to have the comment - on the transformed type parameter? on the generated evidence? elsewhere?
 
 If you want to take care of very low-level details such as this one, quasiquotes aren't going to help, and you'll have to manipulate tokens: reading them off `Tree.tokens` to figure out the exact layout and then writing them with `Tree.withTokens` to achieve a precise result. While the former works reasonably well, the latter might be tricky until we fix [#150](https://github.com/scalameta/scalameta/issues/150).
+
+### Minding hygiene
+
+When doing code transformations, one should always think about hygiene, which entails two things: 1) making sure that synthetic references don't get captured by user-defined definitions (referential transparency), 2) making sure that synthetic definitions don't capture user-defined references (hygiene proper).
+
+This tutorial is intentionally simplistic in the regard of hygiene, because the problem lends itself well to relaxed code generation. Firstly, we don't have to worry about `=>` being unexpectedly captured by user definitions, because `=>` is a keyword, not a name. Secondly, avoiding violations of hygiene proper is easily achieved by a low-tech gensym-style solution (`Term.fresh`). Generating both unique and user-readable names (not `ev$1`, but something more along the lines of `ev`) is a completely different story and is left for future work.
