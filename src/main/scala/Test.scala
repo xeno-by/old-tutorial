@@ -11,7 +11,14 @@ object Test {
           case tparam"..$mods $name[..$tparams] >: $lo <: $hi <% ..$vbs : ..$cbs" =>
             val paramEvidences = vbs.map(vb => {
               val evidenceName = Term.fresh("ev")
-              val evidenceTpe = t"$name => $vb"
+              val evidenceTpe = name match {
+                case name: Type.Name =>
+                  t"$name => $vb"
+                case name: Name.Anonymous =>
+                  // NOTE: These type parameters are bugged in scalac, so we bail.
+                  val msg = "can't rewrite context-bounded anonymous type parameters"
+                  sys.error(s"error at ${name.position}:\n$msg")
+              }
               param"implicit $evidenceName: $evidenceTpe"
             })
             evidences ++= paramEvidences

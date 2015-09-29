@@ -191,3 +191,104 @@ object Test {
 ```
 
 Note how scala.meta allows to capture all the language features of Scala, even those like view bounds that are traditionally desugared in scala.reflect. Even though quasiquotes in scala.reflect try really hard to abstract away the desugarings, sometimes the abstraction leaks, and the user is left to deal with the compiler internals. This never happens in scala.meta.
+
+If we try to run this simple transformer that looks plausibly correct, we're going to get a very interesting compilation error:
+
+```
+15:18 ~/Projects/tutorial (HEAD)$ sbt run
+[info] Set current project to tutorial (in build file:~/Projects/tutorial/)
+[info] Updating {file:~/Projects/tutorial/}tutorial...
+[info] Resolving jline#jline;2.12.1 ...
+[info] Done updating.
+[info] Compiling 1 Scala source to ~/Projects/tutorial/target/scala-2.11/classes...
+[error] ~/Projects/tutorial/src/main/scala/Test.scala:15: type mismatch when unquoting;
+[error]  found   : scala.meta.Type.Param.Name
+[error]  required: scala.meta.Type
+[error]               val evidenceTpe = t"$name => $vb"
+[error]                                   ^
+[error] one error found
+```
+
+scala.meta trees are safe by construction, which means that it should be impossible to instantiate a scala.meta tree that doesn't make sense. Some checks are performed at compile time, some are done at runtime - but the end-goal is the same: there must not be a way to create a tree that doesn't conform to Scala's grammar.
+
+What the compiler tells us here is that scala.meta's language model doesn't allow to use a reference to a type parameter (`Type.Param.Name`) as a type. The reason for that might be non-obvious, but if we take a look at [Trees.scala](https://github.com/scalameta/scalameta/blob/master/scalameta/trees/src/main/scala/scala/meta/Trees.scala), we will see that `Type.Param.Name` has two children: `Type.Name`, which is a type, and `Name.Anonymous`, which is not. Now it becomes clear. We need to handle anonymous type parameters.
+
+```scala
+import scala.meta._
+
+object Test {
+  def main(args: Array[String]): Unit = {
+    val stream = getClass.getResourceAsStream("Ordering.scala")
+    val tree = stream.parse[Source]
+    val tree1 = tree.transform {
+      case q"..$mods def $name[..$tparams](...$paramss): $tpeopt = $expr" =>
+        var evidences: List[Term.Param] = Nil
+        val tparams1 = tparams.map {
+          case tparam"..$mods $name[..$tparams] >: $lo <: $hi <% ..$vbs : ..$cbs" =>
+            val paramEvidences = vbs.map(vb => {
+              val evidenceName = Term.fresh("ev")
+              val evidenceTpe = name match {
+                case name: Type.Name =>
+                  t"$name => $vb"
+                case name: Name.Anonymous =>
+                  // NOTE: These type parameters are bugged in scalac, so we bail.
+                  val msg = "can't rewrite context-bounded anonymous type parameters"
+                  sys.error(s"error at ${name.position}:\n$msg")
+              }
+              param"implicit $evidenceName: $evidenceTpe"
+            })
+            evidences ++= paramEvidences
+            tparam"..$mods $name[..$tparams] >: $lo <: $hi : ..$cbs"
+        }
+        val paramss1 = {
+          if (evidences.isEmpty) paramss
+          else {
+            def isImplicit(p: Term.Param) = {
+              val param"..$mods $_: $_ = $_" = p
+              mods.collect{ case mod"implicit" => }.nonEmpty
+            }
+            val shouldMerge = paramss.nonEmpty && paramss.last.exists(isImplicit)
+            if (shouldMerge) paramss.init :+ (paramss.last ++ evidences)
+            else paramss :+ evidences
+          }
+        }
+        q"..$mods def $name[..$tparams1](...$paramss1): $tpeopt = $expr"
+    }
+    println(tree1)
+  }
+}
+```
+
+Funnily enough, our simple exercise has actually exposed a scalac bug. When parsing a method with view bounds, scalac mechanistically desugars these view bounds without doing any intermediate checks. For instance, `def foo[_: Foo] = ???` is going to be desugared into `def foo[_](implicit evidence$1: Foo[_]) = ???`. Unfortunately, because of a bug in scalac, that `Foo[_]` isn't going to mean "`Foo` applied to the anonymous type parameter" (as a matter of fact, it doesn't mean "an existential type `Foo[_]`" either, because of another bug). This leads to the fact that one can define methods like `def foo[_: Foo] = ???`, but usages of such methods aren't going to behave as expected.
+
+Even though it was an unplanned detour from the original goal of the guide, our scalac troubleshooting session provides an important argument in favor of scala.meta: absense of desugarings coupled with safety by construction ensures that your metaprograms are going to be robust from the get-go.
+
+Let's finally run the transformer to make sure that it indeed solves the problem at hand. Note how the printout of the transformed code retains original formatting. Achieving this with `scala.tools.nsc` and `scala.reflect` is prohibitively complex, so `scala.meta` actually brings a significant improvement to the status quo in this area.
+
+```
+15:09 ~/Projects/tutorial (view-bounds)$ sbt run
+[info] Set current project to tutorial (in build file:~/Projects/tutorial/)
+[info] Compiling 1 Scala source to ~/Projects/tutorial/target/scala-2.11/classes...
+[info] Running Test
+package scala
+package math
+
+import java.util.Comparator
+import scala.language.{implicitConversions, higherKinds}
+
+// Skipping some code from scala/math/Ordering.scala
+
+trait LowPriorityOrderingImplicits {
+  /** This would conflict with all the nice implicit Orderings
+   *  available, but thanks to the magic of prioritized implicits
+   *  via subclassing we can make `Ordered[A] => Ordering[A]` only
+   *  turn up if nothing else works.  Since `Ordered[A]` extends
+   *  `Comparable[A]` anyway, we can throw in some Java interop too.
+   */
+  implicit def ordered[A](implicit ev1: A => Comparable[A]): Ordering[A] = new Ordering[A] {
+    def compare(x: A, y: A): Int = x compareTo y
+  }
+}
+
+// Skipping some more code from scala/math/Ordering.scala
+```
