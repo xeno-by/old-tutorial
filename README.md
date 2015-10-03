@@ -32,3 +32,4 @@
 ### Practical guides
   * Rewriting view bounds ([/tree/view-bounds](https://github.com/scalameta/tutorial/tree/view-bounds))
   * Exploring semantics ([/tree/exploring-semantics](https://github.com/scalameta/tutorial/tree/exploring-semantics))
+  * Advanced dendrology ([/tree/advanced-dendrology](https://github.com/scalameta/tutorial/tree/advanced-dendrology))
