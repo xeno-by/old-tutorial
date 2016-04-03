@@ -6,7 +6,7 @@
 
 scala.meta is designed to completely abstract metaprogrammers from internal implementation details. Quasiquotes take care of hiding complex data structures used to represent syntax trees. Semantic infrastructure is designed to abstract away the differences between untyped and typed trees. Imutability makes the internals robust and predictable.
 
-However, given the current pre-release status of scala.meta, it is sometimes necessary to understand and maybe even exploit the processes that are happening under the covers, and this short guide is aimed at gearing you for that purpose. We won't have any dedicated code in this guide, but will instead piggyback on [/tree/exploring-semantics](https://github.com/scalameta/tutorial/tree/exploring-semantics).
+However, given the current pre-release status of scala.meta, it is sometimes necessary to understand and maybe even exploit the processes that are happening under the covers, and this short guide is aimed at gearing you for that purpose. We won't have any dedicated code in this guide, but will instead piggyback on [/tree/view-bounds](https://github.com/scalameta/tutorial/tree/view-bounds).
 
 ### show[Syntax]
 
