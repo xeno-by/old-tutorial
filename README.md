@@ -18,18 +18,9 @@
 :+1: Trees that work
   * No desugarings
   * Precise range positions
-  * Immutable semantic attributes
   * Check out [State of the Meta, Summer 2015](http://scalamacros.org/paperstalks/2015-06-09-StateOfTheMetaSummer2015.pdf) for architectural details
   * Or read on to observe this in practice
 
-### Potential risks
-  * This is pre-release software
-  * Layout inference needs work ([#164](https://github.com/scalameta/scalameta/issues/164))
-  * Semantic infrastructure is far from completion ([#148](https://github.com/scalameta/scalameta/issues/148))
-  * Performance could use some improvements ([#149](https://github.com/scalameta/scalameta/issues/149#issuecomment-110476298) and [#152](https://github.com/scalameta/scalameta/issues/152))
-  * Most of that is planned to be [addressed in 0.1](https://github.com/scalameta/scalameta/milestones/0.1)
-
 ### Practical guides
   * Rewriting view bounds ([/tree/view-bounds](https://github.com/scalameta/tutorial/tree/view-bounds))
-  * Exploring semantics ([/tree/exploring-semantics](https://github.com/scalameta/tutorial/tree/exploring-semantics))
   * Advanced dendrology ([/tree/advanced-dendrology](https://github.com/scalameta/tutorial/tree/advanced-dendrology))
