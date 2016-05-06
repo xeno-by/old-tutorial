@@ -2,6 +2,8 @@
 
 [![Join the chat at https://gitter.im/scalameta/scalameta](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/scalameta/scalameta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+**This tutorial is deprecated because the 0.1.0-RCx series has introduced a lot of changes to the public API.<br/> Follow https://github.com/scalameta/scalameta/issues/154 to be notified about an update.**
+
 ### Target audience
 
   * :white_check_mark: Tool authors
