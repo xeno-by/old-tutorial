@@ -24,5 +24,5 @@
   * Or read on to observe this in practice
 
 ### Practical guides
-  * Rewriting view bounds ([/tree/view-bounds](https://github.com/scalameta/tutorial/tree/view-bounds))
-  * Advanced dendrology ([/tree/advanced-dendrology](https://github.com/scalameta/tutorial/tree/advanced-dendrology))
+  * Rewriting view bounds ([/tree/view-bounds](https://github.com/xeno-by/old-tutorial/tree/view-bounds))
+  * Advanced dendrology ([/tree/advanced-dendrology](https://github.com/xeno-by/old-tutorial/tree/advanced-dendrology))
